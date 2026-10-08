@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Webhook Panel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#09090b;color:#d4d4d8;font-family:'Space Grotesk',sans-serif;padding:24px;font-size:14px}
+  ::-webkit-scrollbar{width:6px}
+  ::-webkit-scrollbar-thumb{background:#3f3f4680;border-radius:99px}
+  .wrap{max-width:1100px;margin:0 auto}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #27272a}
+  h1{font-size:18px;font-weight:600;color:#fafafa}
+  h1 span{color:#34d399}
+  .dot{width:8px;height:8px;border-radius:50%;background:#52525b;display:inline-block;margin-right:6px}
+  .dot.on{background:#10b981;box-shadow:0 0 10px #10b98166}
+  .dot.err{background:#f43f5e;box-shadow:0 0 10px #f43f5e66}
+  .status{font-family:'JetBrains Mono',monospace;font-size:11px;color:#71717a;text-transform:uppercase;letter-spacing:.1em}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .panel{background:#0f0f11;border:1px solid #27272a;border-radius:8px;padding:20px}
+  .panel h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:#71717a;margin-bottom:16px;font-family:'JetBrains Mono',monospace}
+  label{display:block;font-size:11px;color:#71717a;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;font-family:'JetBrains Mono',monospace}
+  input,textarea,select{width:100%;background:#09090b;border:1px solid #27272a;border-radius:6px;padding:10px 12px;color:#d4d4d8;font-family:'JetBrains Mono',monospace;font-size:12px;outline:none}
+  input:focus,textarea:focus{border-color:#3f3f46}
+  textarea{resize:vertical;min-height:80px}
+  .field{margin-bottom:14px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .btn{background:#18181b;border:1px solid #27272a;border-radius:6px;padding:10px 14px;color:#d4d4d8;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;cursor:pointer;transition:.15s;width:100%}
+  .btn:hover{background:#27272a;border-color:#3f3f46;color:#fafafa}
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:linear-gradient(90deg,#059669,#10b981,#2dd4bf);color:#000;border:0;font-weight:600}
+  .btn.danger{background:#1c0a0e;border-color:#7f1d1d;color:#fca5a5}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .btns.full{grid-template-columns:1fr}
+  .console{background:#000;border:1px solid #27272a;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;padding:14px;height:520px;overflow-y:auto;line-height:1.7}
+  .log{padding:3px 0;border-bottom:1px solid #18181b;word-break:break-all;display:flex;gap:10px}
+  .log .ts{color:#52525b;flex-shrink:0}
+  .log .tag{flex-shrink:0;font-weight:600;width:52px}
+  .log .tag.req{color:#60a5fa}
+  .log .tag.ok{color:#34d399}
+  .log .tag.err{color:#f43f5e}
+  .log .tag.sys{color:#71717a}
+  .log .msg{color:#a1a1aa;flex:1;white-space:pre-wrap}
+  .log.ok .msg{color:#a7f3d0}
+  .log.err .msg{color:#fecaca}
+  .hint{font-size:10px;color:#52525b;margin-top:4px;font-family:'JetBrains Mono',monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>webhook<span>_panel</span></h1>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">idle</span></div>
+  </header>
+  <div class="grid">
+    <div>
+      <div class="panel" style="margin-bottom:20px">
+        <h2>auth</h2>
+        <div class="field">
+          <label>api key</label>
+          <input id="apiKey" type="password" placeholder="X-Api-Key" autocomplete="off">
+          <div class="hint">sama dengan API_KEY di .env vercel</div>
+        </div>
+        <div class="btns">
+          <button class="btn" onclick="act.info()">fetch info</button>
+          <button class="btn" onclick="act.ping()">ping</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>actions</h2>
+        <div class="field">
+          <label>username</label>
+          <input id="username" placeholder="Captain Hook">
+        </div>
+        <div class="field">
+          <label>content</label>
+          <textarea id="content" placeholder="@everyone **FROM W44** ```IDIOT BENER BIKIN KEYLOGGER TOLOL```"></textarea>
+        </div>
+        <div class="btns full">
+          <button class="btn primary" onclick="act.send()">send</button>
+        </div>
+        <div class="btns">
+          <button class="btn" onclick="act.embed()">send embed</button>
+          <button class="btn danger" onclick="act.del()">delete webhook</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div class="field" style="margin:0">
+            <label>spam count</label>
+            <input id="spamCount" type="number" value="10" min="1" max="50">
+          </div>
+          <div class="field" style="margin:0">
+            <label>delay ms</label>
+            <input id="spamDelay" type="number" value="500" min="100" max="10000">
+          </div>
+        </div>
+        <div class="btns full" style="margin-top:8px">
+          <button class="btn danger" onclick="act.spam()">spam</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel" style="height:100%;display:flex;flex-direction:column">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="margin:0">console</h2>
+        <button class="btn" style="width:auto;padding:4px 10px;font-size:10px" onclick="document.getElementById('console').innerHTML=''">clear</button>
+      </div>
+      <div class="console" id="console"></div>
+    </div>
+  </div>
+</div>
+<script>
+const log = {
+  el: document.getElementById('console'),
+  add(tag, msg, cls='') {
+    const ts = new Date().toTimeString().slice(0,8);
+    const d = document.createElement('div');
+    d.className = 'log ' + cls;
+    d.innerHTML = `<span class="ts">${ts}</span><span class="tag ${tag}">${tag.toUpperCase()}</span><span class="msg"></span>`;
+    d.querySelector('.msg').textContent = msg;
+    this.el.appendChild(d);
+    this.el.scrollTop = this.el.scrollHeight;
+  },
+  req(m){this.add('req',m)},
+  ok(m){this.add('ok',m,'ok')},
+  err(m){this.add('err',m,'err')},
+  sys(m){this.add('sys',m)}
+};
+function setStatus(s,t){
+  const d=document.getElementById('dot');
+  d.className='dot'+(s==='ok'?' on':s==='err'?' err':'');
+  document.getElementById('statusText').textContent=t;
+}
+async function call(action, payload) {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { log.err('api key kosong'); return; }
+  const t0 = performance.now();
+  log.req(`POST /api/proxy action=${action}`);
+  try {
+    const r = await fetch('/api/proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
+      body: JSON.stringify({ action, payload })
+    });
+    const ms = Math.round(performance.now() - t0);
+    const text = await r.text();
+    let data; try { data = JSON.parse(text); } catch { data = text; }
+    if (r.ok) { log.ok(`${r.status} (${ms}ms)`); if (data) log.sys(JSON.stringify(data).slice(0,400)); setStatus('ok',`${r.status} ok`); }
+    else { log.err(`${r.status} (${ms}ms)`); if (data) log.err(typeof data==='string'?data.slice(0,400):JSON.stringify(data).slice(0,400)); setStatus('err',`${r.status} err`); }
+    return { ok: r.ok, status: r.status, data };
+  } catch (e) {
+    log.err(`network: ${e.message}`); setStatus('err','net err');
+    return { ok: false };
+  }
+}
+const act = {
+  info: () => call('info'),
+  ping: () => call('send', { content: 'ping', username: document.getElementById('username').value || 'Captain Hook' }),
+  send: () => call('send', {
+    content: document.getElementById('content').value,
+    username: document.getElementById('username').value || undefined
+  }),
+  embed: () => call('send', {
+    content: document.getElementById('content').value,
+    embeds: [{ title: 'x', description: 'y', color: 0x10b981 }]
+  }),
+  del: () => { if (confirm('hapus webhook permanen?')) call('delete'); },
+  spam: () => call('spam', {
+    count: parseInt(document.getElementById('spamCount').value),
+    delay: parseInt(document.getElementById('spamDelay').value),
+    message: { content: document.getElementById('content').value, username: document.getElementById('username').value || undefined }
+  })
+};
+log.sys('panel ready');
+log.sys('masukkan API key, lalu fetch info');
+</script>
+</body>
+</html>
