@@ -2,24 +2,23 @@
   "outputDirectory": "public",
   "cleanUrls": true,
   "functions": {
-    "api/relay.js": {
-      "maxDuration": 30
-    }
+    "api/relay.js": { "maxDuration": 30 }
   },
   "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "no-referrer" }
+      ]
+    },
     {
       "source": "/api/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" },
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
       ]
     }
   ]
