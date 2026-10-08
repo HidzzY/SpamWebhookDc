@@ -7,7 +7,6 @@ export const config = {
 };
 
 const ALLOWED_HOST = 'discord.com';
-const ALLOWED_PATH = /^\/api\/v\d+\/webhooks\/\d+\/[\w-]+/;
 
 function cors(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,9 +19,24 @@ function validateWebhookUrl(raw) {
   if (typeof raw !== 'string') return null;
   let u;
   try { u = new URL(raw); } catch { return null; }
+  if (u.protocol !== 'https:') return null;
   if (u.hostname !== ALLOWED_HOST) return null;
-  if (!ALLOWED_PATH.test(u.pathname)) return null;
-  return `https://${ALLOWED_HOST}${u.pathname}`;
+  const m = u.pathname.match(/^\/api\/v\d+\/webhooks\/(\d+)\/([\w-]+)$/);
+  if (!m) return null;
+  return `https://${ALLOWED_HOST}/api/v10/webhooks/${m[1]}/${m[2]}`;
+}
+
+function sanitizeResponse(data) {
+  if (!data || typeof data !== 'object') return data;
+  const { token, url, ...rest } = data;
+  return rest;
+}
+
+function sanitizePayload(p) {
+  const allow = ['content','username','avatar_url','tts','embeds','flags','thread_name','allowed_mentions','attachments'];
+  const out = {};
+  for (const k of allow) if (p[k] !== undefined) out[k] = p[k];
+  return out;
 }
 
 export default async function handler(req, res) {
@@ -54,17 +68,19 @@ export default async function handler(req, res) {
     let r;
     if (isForm && fileBase64 && filename) {
       const buf = Buffer.from(fileBase64, 'base64');
+      if (buf.length > 8 * 1024 * 1024) return res.status(413).json({ error: 'file too large' });
       const fd = new FormData();
-      fd.append('file', buf, { filename });
-      fd.append('payload_json', JSON.stringify(payload || {}));
-      r = await fetch(target, { method: m, body: fd, headers: fd.getHeaders() });
+      fd.append('file', buf, { filename: String(filename).replace(/[^\w.\-]/g, '_') });
+      fd.append('payload_json', JSON.stringify(sanitizePayload(payload || {})));
+      r = await fetch(target, { method: m, body: fd, headers: fd.getHeaders(), redirect: 'manual' });
     } else if (m === 'GET' || m === 'DELETE') {
-      r = await fetch(target, { method: m });
+      r = await fetch(target, { method: m, redirect: 'manual' });
     } else {
       r = await fetch(target, {
         method: m,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sanitizePayload(payload || {}))
+        body: JSON.stringify(sanitizePayload(payload || {})),
+        redirect: 'manual'
       });
     }
 
@@ -79,18 +95,11 @@ export default async function handler(req, res) {
     if (!text) return res.status(status).end();
     try {
       const json = JSON.parse(text);
-      return res.status(status).json(json);
+      return res.status(status).json(sanitizeResponse(json));
     } catch {
       return res.status(status).send(text);
     }
   } catch (e) {
     return res.status(502).json({ error: 'relay error', detail: e.message });
   }
-}
-
-function sanitizePayload(p) {
-  const allow = ['content','username','avatar_url','tts','embeds','flags','thread_name','allowed_mentions','attachments'];
-  const out = {};
-  for (const k of allow) if (p[k] !== undefined) out[k] = p[k];
-  return out;
 }
