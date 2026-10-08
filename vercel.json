@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "public": true,
   "functions": {
     "api/proxy.js": {
       "maxDuration": 30
